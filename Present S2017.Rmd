@@ -1,0 +1,186 @@
+---
+title: "Hidden Markov Models"
+author: "Sarah Bailey"
+date: '2017-03-27'
+header-includes:
+  - \usepackage{amsmath}
+  - \usepackage{caption}
+  - \usepackage{subcaption}
+  - \usepackage{graphicx}
+output: 
+  beamer_presentation:
+    incremental: false
+    theme: "Berlin"
+    colortheme: "beaver"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=10),tidy=TRUE)
+```
+
+## Overview
+
+- Bayesian Networks
+- Hidden Markov Models in General
+- Maximum Likelihood Estimation 
+- The EM Algorithm
+- Forward Backward Algorithm
+- Limitations of HMMs
+- Application
+
+## Motivation
+- Baseball Home Run Prediction
+- Other Applications: speech recognition, computational biology, fault detection, data compression
+
+\begin{center}
+\includegraphics[height=5cm, width=8cm]{Positions}
+\end{center}
+
+
+## Bayesian Networks
+- Graphical Model
+- Represent conditional independencies between a set of random variables
+- Specific factorization of a joint distribution
+  
+\includegraphics[height=3cm,width=8cm]{BayesianNetwork}
+
+## Hidden Markov Models in General
+
+- Represent probability distributions over sequences of observations
+
+Two Key Properties
+
+1. Observation at $t$, ($Y_t$) was generated from state space $S_t$ that is hidden (ie. latent)
+2. $S_t$ satisfies the Markov Property
+- Joint distribution of sequence of states and observations can be defined as
+\[
+p(S_{1:t},Y_{1:t})=p(S_1)p(Y_1\mid S_1)\prod_{t=2}^T p(S_t\mid S_{t-1})p(Y_t\mid S_t)
+\]
+
+## Hidden Markov Models
+- $S_t$ is discrete
+- Must specify
+    - $p(S_1)$: probability distribution over initial state  
+    - $K\times K$ state transition matrix that defines $p(S_t\mid S_{t-1})$ and the output model which defines $p(Y_t\mid S_t)$
+- Different transition matrices depend on type of data observed
+
+
+## Maximum Likelihood Estimation: EM Algorithm
+- Expectation (E): Find conditional expectations of missing data given observations and current estimates of parameters, $\theta$
+- Maximization (M): Maximize the complete data log-likelihood with respect to $\theta$ (functions of missing data are replaced by their conditional expectations found in E-step) 
+- Repeat until convergence criterion has been made 
+- For HMM, expectations can be difficult to compute directly, can be found using forward-backward algorithm 
+
+## Forward-Backward Algorithm 
+- Forward Step
+     - Computes $\alpha_t$: Joint probability of $S_t$ and $Y_1, \cdots, Y_t$
+
+\begin{align}
+\alpha_t & = p(S_t, Y_{1:t}) \\
+& = \left[\sum_{S_{t-1}}p(S_{t-1}, Y_{t-1})p(S_t\mid S_{t-1})\right]\\
+& = \left[ \sum_{S_{t-1}}\alpha_{t-1}p(S_t\mid S_{t-1})\right] p(Y_t\mid S_t).
+\end{align}
+
+## Forward-Backward Algorithm
+- Backward Step
+     - Compute $\beta_t$: Conditional probability of the observations $Y_{t+1}, \cdots, Y_T$ given $S_t$
+
+\begin{align}
+\beta_t & = p(Y_{t+1}\mid S_t) \\
+& = \sum_{S_{t+1}}p(Y_{t+2:T}\mid S_{t+1})p(S_{t+1}\mid S_t)p(Y_{t+1}\mid S_t) \\
+& = \sum_{S_{t+1}}\beta_{t+1}p(S_{t+1}\mid S_t)p(Y_{t+1}\mid S_{t+1})
+\end{align}
+
+- Combining $\alpha_t\beta_t'=$ marginal distribution of $s_t$
+
+
+## Sampling from HMM: Stochastic Method
+- Consider following joint density
+\[p(S_n\mid Y_n,\theta)=p(s_n\mid Y_n,\theta)\times \cdots \times p(s_t\mid Y_n,S_{t+1},\theta)
+\]\[\times\cdots\times p(s_1\mid Y_n, S_2, \theta).
+\]
+Want $p(s_t\mid Y_n, S_{t+1},\theta)$. By Bayes theorem 
+\begin{align*}
+p(s_t\mid Y_n , S_{t+1},\theta) & \propto p(s_t\mid Y_t,\theta)\times f(Y_{t+1},S_{t+1}) \\
+& \propto p(s_t\mid Y_t, \theta) \times p(s_{t+1}\mid s_t,\theta) \\
+&\times f(Y_{t+1},S_{t+2}\mid Y_t,s_t, s_{t+1},\theta) \\
+& \propto p(s_t\mid Y_t, \theta)\times p(s_{t+1}\mid s_t, \theta)
+\end{align*}
+
+## Sampling from HMM: Stochastic Method
+- Prediction Step: Find $p(s_t\mid Y_{t-1},\theta)$. Calculate forward probabilities as in forward-backward algorithm
+\[p(s_t\mid Y_{t-1},\theta)=\sum_{k=1}^mp(s_t\mid s_{t-1}=k,\theta)\times p(s_{t-1}=k\mid Y_{t-1},\theta)\]
+- Update Step: Find $p(s_t\mid Y_t,\theta)$. Using Bayes
+\[p(s_t\mid Y_t, \theta)\propto p(s_t\mid Y_{t-1},\theta)\times f(y_t\mid Y_{t-1},\theta)\]
+
+
+## Sampling from HMM: Stochastic Method
+\[ F= \left[ \begin{array}{c}
+p(s_{t-1} \mid Y_1, \theta)\\ 
+p(s_{t-1}\mid Y_{t-1},\theta)\odot d_t\\
+\vdots \end{array}\right]\]
+where
+\[d_t=[f(y_t\mid Y_{t-1},\theta)]\]
+- Backward step: recursively calculates $s_{n-1}, \cdots s_t$ using $p(s_t\mid Y_{t-1},\theta)=p(s_t\mid Y_t, \theta)\times p(s_{t+1}\mid s_t, \theta)$
+
+- Sampling $s_t$ directly from $p(s_t\mid Y_t, \theta)$ implies faster mixing: Fewer components in Gibbs Markov Chain
+
+## Application (in progress)
+
+```{r,echo=F}
+load(file="data")
+```
+Let $Y_{ij}\sim$ Binomial$(M_{ij},\theta_{ij})$, $\theta_{ij}$: player-year specific HRR, $M_{ij}$: number of at bat opportunities for player $i$ in year $j$. 
+
+Model
+\[\log\left(\frac{\theta_{ij}}{1-\theta_{ij}}\right)=\alpha_k+\beta_b+f_k(A_ij)\]
+ 
+ - $b=B_{ij}$: Home Ballpark
+ - $k=R_{ij}$: position
+ - $A_{ij}$: Age 
+ - $\alpha_k$: Position specific intercepts
+ - $f_k(A_{ij})$: Smooth trajectory of $A_{ij}$ (varies with each position)
+
+## Application: Hidden Model Part
+1) Not all hitters are created equally
+\[\alpha_k =  \left\{\begin{array}{ccc}
+\alpha_{k0}, & \text{if} & E_{ij}=0 \\ 
+\alpha_{k1}, & \text{if} & E_{ij}=1\end{array}\right\}\]
+2) Past performance of players
+- HMM on $E_{ij}$
+\[p(E_{i,j+1}=b\mid E_{ij}=a,R_{ij}=k)=\nu_{abk}\]
+
+## Application: Hidden Model Part
+
+\begin{center}
+\includegraphics[height=4cm,width=8cm]{Elite}
+\end{center}
+
+- Full Bayesian Approach
+- $\alpha_k\sim$  MVNormal$(0,\tau^2I_2)\cdot$Ind$(\alpha_{k0}<\alpha_{k1})$ 
+
+
+
+## Application: Hidden Model Part
+Sampling Scheme for HMM
+
+1) $p(\nu\mid \beta,\gamma, \alpha, E, X)=p(\nu \mid E)$
+\begin{align*}
+(\nu_{00k},\nu_{01k})\mid E & \sim \text{ Dirichlet }(N_{00k}+\omega,N_{01k}+\omega) \\
+(\nu_{11k}, \nu_{10k})\mid E & \sim \text{ Dirichlet } (N_{11k}+\omega, N_{10k}+\omega)
+\end{align*}
+2) $p(E\mid \beta,\gamma,\nu,E,X)$ via FB
+
+## Code Examples
+
+ \begin{center}
+\includegraphics[height=2cm, width=8cm]{result}
+\end{center}
+
+\begin{center}
+\includegraphics[height=2cm, width=8cm]{compare}
+ \end{center}
+
+`> error<-compare$ActualNHR-compare$PredictedNHR`
+`> rmse2(error)
+[1] 8.94555`
